@@ -1,1036 +1,884 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>力量举计划 · 训练完成度追踪</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg-dark: #0f1117;
-            --bg-card: #181c27;
-            --bg-card-hover: #1e2330;
-            --border: #2a3040;
-            --text-primary: #e8ecf4;
-            --text-secondary: #8b93a7;
-            --text-dim: #5a6178;
-            --accent-red: #e74c3c;
-            --accent-red-dim: #3d1f1c;
-            --accent-green: #27ae60;
-            --accent-green-dim: #1a3328;
-            --accent-blue: #3498db;
-            --accent-blue-dim: #1a2a3d;
-            --accent-gold: #f1c40f;
-            --accent-purple: #9b59b6;
-            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            --radius: 16px;
-            --radius-sm: 10px;
-        }
-
-        body {
-            background: var(--bg-dark);
-            color: var(--text-primary);
-            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-            min-height: 100vh;
-            line-height: 1.5;
-            background-image:
-                radial-gradient(circle at 15% 10%, rgba(231, 76, 60, 0.08) 0%, transparent 40%),
-                radial-gradient(circle at 85% 90%, rgba(52, 152, 219, 0.06) 0%, transparent 40%);
-        }
-
-        /* ========== 布局 ========== */
-        .app {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 24px 20px 60px;
-        }
-
-        /* ========== 顶部标题栏 ========== */
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 16px;
-            margin-bottom: 28px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .brand-icon {
-            width: 52px;
-            height: 52px;
-            background: linear-gradient(145deg, var(--accent-red), #c0392b);
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.35);
-            flex-shrink: 0;
-        }
-
-        .brand-text h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-
-        .brand-text p {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-top: 2px;
-        }
-
-        /* 总体进度环 */
-        .overall-progress {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 12px 22px;
-            box-shadow: var(--shadow);
-        }
-
-        .progress-ring {
-            position: relative;
-            width: 64px;
-            height: 64px;
-            flex-shrink: 0;
-        }
-
-        .progress-ring svg {
-            transform: rotate(-90deg);
-            width: 64px;
-            height: 64px;
-        }
-
-        .progress-ring circle {
-            fill: none;
-            stroke-width: 7;
-            stroke-linecap: round;
-        }
-
-        .progress-ring .track {
-            stroke: var(--border);
-        }
-
-        .progress-ring .fill {
-            stroke: var(--accent-green);
-            transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease;
-        }
-
-        .progress-ring .pct-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        .overall-info {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .overall-info .label {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .overall-info .value {
-            font-size: 1.1rem;
-            font-weight: 700;
-        }
-
-        .overall-info .value span {
-            color: var(--accent-green);
-        }
-
-        /* ========== 周切换 ========== */
-        .week-nav {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 22px;
-        }
-
-        .week-nav-inner {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 50px;
-            padding: 6px;
-        }
-
-        .week-btn {
-            width: 38px;
-            height: 38px;
-            border: none;
-            background: transparent;
-            color: var(--text-secondary);
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .week-btn:hover {
-            background: var(--bg-card-hover);
-            color: var(--text-primary);
-        }
-
-        .week-label {
-            font-weight: 700;
-            font-size: 0.95rem;
-            padding: 0 16px;
-            min-width: 130px;
-            text-align: center;
-            color: var(--text-primary);
-        }
-
-        .week-label small {
-            display: block;
-            font-size: 0.7rem;
-            color: var(--text-dim);
-            font-weight: 400;
-            letter-spacing: 0.5px;
-        }
-
-        .week-hint {
-            font-size: 0.82rem;
-            color: var(--text-dim);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        /* ========== 日期标签行 ========== */
-        .day-tabs {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
-            margin-bottom: 22px;
-        }
-
-        .day-tab {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 12px 8px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .day-tab:hover {
-            background: var(--bg-card-hover);
-            border-color: #3a4256;
-            transform: translateY(-2px);
-        }
-
-        .day-tab.active {
-            border-color: var(--accent-blue);
-            background: var(--accent-blue-dim);
-            box-shadow: 0 0 0 1px var(--accent-blue), 0 8px 20px rgba(52, 152, 219, 0.15);
-        }
-
-        .day-tab .day-name {
-            font-size: 0.78rem;
-            color: var(--text-secondary);
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-
-        .day-tab.active .day-name {
-            color: var(--accent-blue);
-        }
-
-        .day-tab .day-date {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin: 4px 0 6px;
-        }
-
-        .day-tab .day-status {
-            font-size: 0.7rem;
-            color: var(--text-dim);
-            font-weight: 500;
-        }
-
-        .day-tab .day-status.done {
-            color: var(--accent-green);
-        }
-
-        .day-tab .day-status.partial {
-            color: var(--accent-gold);
-        }
-
-        .day-tab .day-status.rest {
-            color: var(--text-dim);
-        }
-
-        /* 完成状态小圆点 */
-        .day-tab .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--border);
-            margin: 0 auto;
-        }
-
-        .day-tab .status-dot.done { background: var(--accent-green); }
-        .day-tab .status-dot.partial { background: var(--accent-gold); }
-        .day-tab .status-dot.rest { background: var(--text-dim); opacity: 0.4; }
-
-        /* 当天完成时整个标签微微泛绿 */
-        .day-tab.completed {
-            border-color: rgba(39, 174, 96, 0.4);
-        }
-
-        /* ========== 主内容区 ========== */
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 340px;
-            gap: 22px;
-            align-items: start;
-        }
-
-        /* ========== 训练计划卡片 ========== */
-        .plan-panel {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-        }
-
-        .plan-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
-        }
-
-        .plan-header-left {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .day-badge {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(145deg, var(--accent-red), #c0392b);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.3rem;
-            font-weight: 800;
-            flex-shrink: 0;
-            box-shadow: 0 4px 14px rgba(231, 76, 60, 0.3);
-        }
-
-        .plan-header-left h2 {
-            font-size: 1.2rem;
-            font-weight: 700;
-        }
-
-        .plan-header-left .subtitle {
-            font-size: 0.82rem;
-            color: var(--text-secondary);
-            margin-top: 2px;
-        }
-
-        .plan-stats {
-            display: flex;
-            gap: 20px;
-        }
-
-        .plan-stat {
-            text-align: right;
-        }
-
-        .plan-stat .num {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--accent-green);
-        }
-
-        .plan-stat .lbl {
-            font-size: 0.72rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
-
-        /* 动作列表 */
-        .exercise-list {
-            padding: 8px 0;
-        }
-
-        .exercise-item {
-            padding: 18px 24px;
-            border-bottom: 1px solid rgba(42, 48, 64, 0.6);
-            transition: background 0.2s;
-        }
-
-        .exercise-item:last-child {
-            border-bottom: none;
-        }
-
-        .exercise-item:hover {
-            background: rgba(255, 255, 255, 0.015);
-        }
-
-        .exercise-item.completed {
-            background: rgba(39, 174, 96, 0.04);
-        }
-
-        .ex-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .ex-name {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 700;
-            font-size: 1.05rem;
-        }
-
-        .ex-name .ex-icon {
-            width: 34px;
-            height: 34px;
-            border-radius: 9px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            flex-shrink: 0;
-        }
-
-        .ex-icon.squat { background: rgba(231, 76, 60, 0.15); color: var(--accent-red); }
-        .ex-icon.bench { background: rgba(52, 152, 219, 0.15); color: var(--accent-blue); }
-        .ex-icon.deadlift { background: rgba(155, 89, 182, 0.15); color: var(--accent-purple); }
-        .ex-icon.accessory { background: rgba(241, 196, 15, 0.12); color: var(--accent-gold); }
-
-        .ex-badge {
-            font-size: 0.68rem;
-            padding: 3px 9px;
-            border-radius: 20px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-
-        .ex-badge.main { background: rgba(231, 76, 60, 0.15); color: var(--accent-red); }
-        .ex-badge.aux { background: rgba(52, 152, 219, 0.12); color: var(--accent-blue); }
-        .ex-badge.acc { background: rgba(241, 196, 15, 0.1); color: var(--accent-gold); }
-
-        .ex-completion {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--text-secondary);
-            white-space: nowrap;
-        }
-
-        .ex-completion.all-done {
-            color: var(--accent-green);
-        }
-
-        /* 组数网格 */
-        .sets-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 10px;
-        }
-
-        .set-card {
-            background: var(--bg-dark);
-            border: 1.5px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 12px 14px;
-            cursor: pointer;
-            transition: all 0.18s ease;
-            position: relative;
-            user-select: none;
-        }
-
-        .set-card:hover {
-            border-color: #3d4558;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        .set-card.done {
-            border-color: var(--accent-green);
-            background: var(--accent-green-dim);
-        }
-
-        .set-card.done::after {
-            content: '✓';
-            position: absolute;
-            top: 6px;
-            right: 10px;
-            color: var(--accent-green);
-            font-weight: 800;
-            font-size: 0.9rem;
-        }
-
-        .set-weight {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            display: flex;
-            align-items: baseline;
-            gap: 4px;
-        }
-
-        .set-weight .unit {
-            font-size: 0.72rem;
-            color: var(--text-dim);
-            font-weight: 500;
-        }
-
-        .set-card.done .set-weight {
-            color: var(--accent-green);
-        }
-
-        .set-detail {
-            font-size: 0.76rem;
-            color: var(--text-secondary);
-            margin-top: 4px;
-            display: flex;
-            justify-content: space-between;
-            gap: 6px;
-        }
-
-        .set-rpe {
-            font-size: 0.68rem;
-            color: var(--text-dim);
-            background: rgba(255, 255, 255, 0.04);
-            padding: 1px 7px;
-            border-radius: 10px;
-            align-self: center;
-        }
-
-        /* 休息日 */
-        .rest-day {
-            padding: 60px 24px;
-            text-align: center;
-        }
-
-        .rest-day .rest-icon {
-            font-size: 3.5rem;
-            margin-bottom: 12px;
-            opacity: 0.6;
-        }
-
-        .rest-day h3 {
-            font-size: 1.2rem;
-            color: var(--text-secondary);
-            margin-bottom: 6px;
-        }
-
-        .rest-day p {
-            font-size: 0.88rem;
-            color: var(--text-dim);
-            max-width: 380px;
-            margin: 0 auto;
-        }
-
-        /* ========== 右侧统计面板 ========== */
-        .stats-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-            position: sticky;
-            top: 24px;
-        }
-
-        .stat-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 20px;
-            box-shadow: var(--shadow);
-        }
-
-        .stat-card h3 {
-            font-size: 0.78rem;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            color: var(--text-dim);
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 700;
-        }
-
-        .stat-card h3 .dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--accent-blue);
-        }
-
-        /* 周汇总柱状图 */
-        .week-bars {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            gap: 8px;
-            height: 130px;
-            padding-top: 10px;
-        }
-
-        .week-bar-item {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            height: 100%;
-            justify-content: flex-end;
-        }
-
-        .week-bar-track {
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 6px;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .week-bar-fill {
-            width: 100%;
-            background: linear-gradient(180deg, var(--accent-green), #1e8449);
-            border-radius: 6px;
-            transition: height 0.5s ease;
-            min-height: 3px;
-        }
-
-        .week-bar-fill.empty {
-            background: var(--border);
-            opacity: 0.4;
-        }
-
-        .week-bar-label {
-            font-size: 0.7rem;
-            color: var(--text-dim);
-            font-weight: 600;
-        }
-
-        /* 累计数据 */
-        .totals-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .total-item {
-            background: var(--bg-dark);
-            border-radius: var(--radius-sm);
-            padding: 14px;
-            text-align: center;
-            border: 1px solid var(--border);
-        }
-
-        .total-item .val {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: var(--text-primary);
-            line-height: 1.2;
-        }
-
-        .total-item .val.green { color: var(--accent-green); }
-        .total-item .val.blue { color: var(--accent-blue); }
-        .total-item .val.gold { color: var(--accent-gold); }
-
-        .total-item .lbl {
-            font-size: 0.68rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin-top: 4px;
-        }
-
-        /* 重置按钮 */
-        .reset-btn {
-            width: 100%;
-            padding: 12px;
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-secondary);
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            font-size: 0.82rem;
-            font-weight: 600;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-family: inherit;
-        }
-
-        .reset-btn:hover {
-            border-color: var(--accent-red);
-            color: var(--accent-red);
-            background: rgba(231, 76, 60, 0.06);
-        }
-
-        /* ========== 响应式 ========== */
-        @media (max-width: 960px) {
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
-            .stats-panel {
-                position: static;
-            }
-            .day-tabs {
-                gap: 5px;
-            }
-            .day-tab {
-                padding: 8px 4px;
-            }
-            .day-tab .day-date {
-                font-size: 0.95rem;
-            }
-            .day-tab .day-name {
-                font-size: 0.68rem;
-            }
-        }
-
-        @media (max-width: 600px) {
-            .app { padding: 16px 12px 40px; }
-            .header { flex-direction: column; align-items: flex-start; }
-            .overall-progress { width: 100%; justify-content: center; }
-            .day-tabs { grid-template-columns: repeat(4, 1fr); }
-            .sets-grid { grid-template-columns: 1fr 1fr; }
-            .plan-header { flex-direction: column; align-items: flex-start; }
-            .plan-stats { width: 100%; justify-content: space-between; }
-            .week-bars { height: 100px; }
-        }
-
-        /* 滚动条美化 */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: var(--bg-dark);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #3a4256;
-        }
-
-        /* 提示 toast */
-        .toast {
-            position: fixed;
-            bottom: 28px;
-            left: 50%;
-            transform: translateX(-50%) translateY(20px);
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-            padding: 12px 24px;
-            border-radius: 50px;
-            font-size: 0.88rem;
-            font-weight: 600;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            opacity: 0;
-            pointer-events: none;
-            transition: all 0.3s ease;
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-
-        .toast.success { border-color: rgba(39, 174, 96, 0.5); }
-        .toast.info { border-color: rgba(52, 152, 219, 0.5); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>力量举计划 · 训练完成度追踪</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg-dark:#0f1117;--bg-card:#181c27;--bg-card-hover:#1e2330;--border:#2a3040;
+--text-primary:#e8ecf4;--text-secondary:#8b93a7;--text-dim:#5a6178;
+--accent-red:#e74c3c;--accent-green:#27ae60;--accent-green-dim:#1a3328;
+--accent-blue:#3498db;--accent-blue-dim:#1a2a3d;--accent-gold:#f1c40f;--accent-purple:#9b59b6;
+--shadow:0 8px 32px rgba(0,0,0,.4);--radius:16px;--radius-sm:10px;
+}
+body{background:var(--bg-dark);color:var(--text-primary);font-family:'Segoe UI','PingFang SC','Microsoft YaHei',system-ui,sans-serif;min-height:100vh;line-height:1.5;
+background-image:radial-gradient(circle at 15% 10%,rgba(231,76,60,.08) 0%,transparent 40%),radial-gradient(circle at 85% 90%,rgba(52,152,219,.06) 0%,transparent 40%)}
+.app{max-width:1280px;margin:0 auto;padding:24px 20px 60px}
+.header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-icon{width:52px;height:52px;background:linear-gradient(145deg,var(--accent-red),#c0392b);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 6px 20px rgba(231,76,60,.35);flex-shrink:0}
+.brand-text h1{font-size:1.5rem;font-weight:700;letter-spacing:.5px}
+.brand-text p{font-size:.85rem;color:var(--text-secondary);margin-top:2px}
+.overall-progress{display:flex;align-items:center;gap:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 22px;box-shadow:var(--shadow)}
+.progress-ring{position:relative;width:64px;height:64px;flex-shrink:0}
+.progress-ring svg{transform:rotate(-90deg);width:64px;height:64px}
+.progress-ring circle{fill:none;stroke-width:7;stroke-linecap:round}
+.progress-ring .track{stroke:var(--border)}
+.progress-ring .fill{stroke:var(--accent-green);transition:stroke-dashoffset .6s ease}
+.progress-ring .pct-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:.9rem;font-weight:700}
+.overall-info{display:flex;flex-direction:column;gap:2px}
+.overall-info .label{font-size:.75rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px}
+.overall-info .value{font-size:1.1rem;font-weight:700}
+.overall-info .value span{color:var(--accent-green)}
+.week-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+.week-nav-inner{display:flex;align-items:center;gap:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:50px;padding:6px}
+.week-btn{width:38px;height:38px;border:none;background:transparent;color:var(--text-secondary);border-radius:50%;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.week-btn:hover{background:var(--bg-card-hover);color:var(--text-primary)}
+.week-label{font-weight:700;font-size:.95rem;padding:0 16px;min-width:130px;text-align:center}
+.week-label small{display:block;font-size:.7rem;color:var(--text-dim);font-weight:400}
+.week-hint{font-size:.82rem;color:var(--text-dim);display:flex;align-items:center;gap:6px}
+.day-tabs{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:22px}
+.day-tab{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 8px;text-align:center;cursor:pointer;transition:all .2s}
+.day-tab:hover{background:var(--bg-card-hover);border-color:#3a4256;transform:translateY(-2px)}
+.day-tab.active{border-color:var(--accent-blue);background:var(--accent-blue-dim);box-shadow:0 0 0 1px var(--accent-blue),0 8px 20px rgba(52,152,219,.15)}
+.day-tab .day-name{font-size:.78rem;color:var(--text-secondary);font-weight:600}
+.day-tab.active .day-name{color:var(--accent-blue)}
+.day-tab .day-date{font-size:1.1rem;font-weight:700;margin:4px 0 6px}
+.day-tab .day-status{font-size:.7rem;color:var(--text-dim);font-weight:500}
+.day-tab .day-status.done{color:var(--accent-green)}
+.day-tab .day-status.partial{color:var(--accent-gold)}
+.day-tab .status-dot{width:8px;height:8px;border-radius:50%;background:var(--border);margin:0 auto}
+.day-tab .status-dot.done{background:var(--accent-green)}
+.day-tab .status-dot.partial{background:var(--accent-gold)}
+.day-tab .status-dot.rest{background:var(--text-dim);opacity:.4}
+.main-grid{display:grid;grid-template-columns:1fr 340px;gap:22px;align-items:start}
+.plan-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.plan-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.plan-header-left{display:flex;align-items:center;gap:14px}
+.day-badge{width:50px;height:50px;background:linear-gradient(145deg,var(--accent-red),#c0392b);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;flex-shrink:0;box-shadow:0 4px 14px rgba(231,76,60,.3)}
+.plan-header-left h2{font-size:1.2rem;font-weight:700}
+.plan-header-left .subtitle{font-size:.82rem;color:var(--text-secondary);margin-top:2px}
+.plan-stats{display:flex;gap:20px}
+.plan-stat{text-align:right}
+.plan-stat .num{font-size:1.3rem;font-weight:700;color:var(--accent-green)}
+.plan-stat .lbl{font-size:.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px}
+.exercise-list{padding:8px 0}
+.exercise-item{padding:18px 24px;border-bottom:1px solid rgba(42,48,64,.6);transition:background .2s}
+.exercise-item:last-child{border-bottom:none}
+.exercise-item.completed{background:rgba(39,174,96,.04)}
+.ex-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.ex-name{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.05rem}
+.ex-name .ex-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.ex-icon.squat{background:rgba(231,76,60,.15);color:var(--accent-red)}
+.ex-icon.bench{background:rgba(52,152,219,.15);color:var(--accent-blue)}
+.ex-icon.deadlift{background:rgba(155,89,182,.15);color:var(--accent-purple)}
+.ex-icon.accessory{background:rgba(241,196,15,.12);color:var(--accent-gold)}
+.ex-badge{font-size:.68rem;padding:3px 9px;border-radius:20px;font-weight:700;letter-spacing:.5px}
+.ex-badge.main{background:rgba(231,76,60,.15);color:var(--accent-red)}
+.ex-badge.aux{background:rgba(52,152,219,.12);color:var(--accent-blue)}
+.ex-badge.acc{background:rgba(241,196,15,.1);color:var(--accent-gold)}
+.ex-completion{font-size:.85rem;font-weight:700;color:var(--text-secondary);white-space:nowrap}
+.ex-completion.all-done{color:var(--accent-green)}
+.sets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.set-card{background:var(--bg-dark);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;cursor:pointer;transition:all .18s ease;position:relative;user-select:none}
+.set-card:hover{border-color:#3d4558;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.set-card.done{border-color:var(--accent-green);background:var(--accent-green-dim)}
+.set-card.done::after{content:'✓';position:absolute;top:6px;right:10px;color:var(--accent-green);font-weight:800;font-size:.9rem}
+.set-weight{font-size:1.05rem;font-weight:700;display:flex;align-items:baseline;gap:4px}
+.set-weight .unit{font-size:.72rem;color:var(--text-dim);font-weight:500}
+.set-card.done .set-weight{color:var(--accent-green)}
+.set-detail{font-size:.76rem;color:var(--text-secondary);margin-top:4px;display:flex;justify-content:space-between;gap:6px}
+.set-rpe{font-size:.68rem;color:var(--text-dim);background:rgba(255,255,255,.04);padding:1px 7px;border-radius:10px;align-self:center}
+.stats-panel{display:flex;flex-direction:column;gap:18px;position:sticky;top:24px}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.stat-card h3{font-size:.78rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-dim);margin-bottom:16px;display:flex;align-items:center;gap:8px;font-weight:700}
+.stat-card h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent-blue)}
+.week-bars{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;height:130px;padding-top:10px}
+.week-bar-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.week-bar-track{width:100%;height:100%;background:rgba(255,255,255,.03);border-radius:6px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+.week-bar-fill{width:100%;background:linear-gradient(180deg,var(--accent-green),#1e8449);border-radius:6px;transition:height .5s ease;min-height:3px}
+.week-bar-fill.empty{background:var(--border);opacity:.4}
+.week-bar-label{font-size:.7rem;color:var(--text-dim);font-weight:600}
+.totals-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.total-item{background:var(--bg-dark);border-radius:var(--radius-sm);padding:14px;text-align:center;border:1px solid var(--border)}
+.total-item .val{font-size:1.4rem;font-weight:800;line-height:1.2}
+.total-item .val.green{color:var(--accent-green)}
+.total-item .val.blue{color:var(--accent-blue)}
+.total-item .val.gold{color:var(--accent-gold)}
+.total-item .lbl{font-size:.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px;margin-top:4px}
+.reset-btn{width:100%;padding:12px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);border-radius:var(--radius-sm);cursor:pointer;font-size:.82rem;font-weight:600;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit}
+.reset-btn:hover{border-color:var(--accent-red);color:var(--accent-red);background:rgba(231,76,60,.06)}
+.reset-btn.blue:hover{border-color:var(--accent-blue);color:var(--accent-blue);background:rgba(52,152,219,.06)}
+.reset-btn.green:hover{border-color:var(--accent-green);color:var(--accent-green);background:rgba(39,174,96,.06)}
+.rest-day{padding:60px 24px;text-align:center}
+.rest-day .rest-icon{font-size:3.5rem;margin-bottom:12px;opacity:.6}
+.rest-day h3{font-size:1.2rem;color:var(--text-secondary);margin-bottom:6px}
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg-card);border:1px solid var(--border);padding:12px 24px;border-radius:50px;font-size:.88rem;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:all .3s ease;z-index:9999}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.success{border-color:rgba(39,174,96,.5)}
+.toast.info{border-color:rgba(52,152,219,.5)}
+.toast.warn{border-color:rgba(241,196,15,.5)}
+
+/* ============ 新增：Tabs 面板 ============ */
+.panel-tabs{display:flex;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:50px;padding:5px;margin-bottom:18px;overflow-x:auto}
+.panel-tab{flex-shrink:0;padding:9px 18px;border:none;background:transparent;color:var(--text-secondary);border-radius:40px;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s;font-family:inherit;white-space:nowrap}
+.panel-tab:hover{color:var(--text-primary);background:rgba(255,255,255,.03)}
+.panel-tab.active{background:linear-gradient(145deg,var(--accent-red),#c0392b);color:#fff;box-shadow:0 4px 14px rgba(231,76,60,.3)}
+.panel-view{display:none}
+.panel-view.active{display:block}
+
+/* ============ 新增：环形图（按动作类型） ============ */
+.donut-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;padding:8px 0}
+.donut-svg{width:200px;height:200px}
+.donut-svg circle{fill:none;stroke-width:22;transition:stroke-dashoffset .6s ease}
+.donut-legend{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;width:100%;margin-top:6px}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--text-secondary)}
+.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.legend-item strong{margin-left:auto;color:var(--text-primary);font-weight:700}
+
+/* ============ 新增：历史日历 ============ */
+.calendar-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.calendar-header h3{margin-bottom:0}
+.cal-nav{display:flex;gap:6px}
+.cal-nav-btn{width:32px;height:32px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);border-radius:8px;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .2s;font-family:inherit}
+.cal-nav-btn:hover{border-color:var(--accent-blue);color:var(--accent-blue)}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-dow{text-align:center;font-size:.7rem;color:var(--text-dim);font-weight:700;padding:4px 0;text-transform:uppercase;letter-spacing:.5px}
+.cal-day{aspect-ratio:1;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.8rem;color:var(--text-secondary);cursor:pointer;transition:all .2s;position:relative;font-weight:600}
+.cal-day:hover{border-color:var(--accent-blue);transform:scale(1.05)}
+.cal-day.out{opacity:.25;cursor:default}
+.cal-day.out:hover{transform:none;border-color:var(--border)}
+.cal-day.today{border-color:var(--accent-gold);box-shadow:0 0 0 1px var(--accent-gold)}
+.cal-day.trained{background:var(--accent-green-dim);border-color:rgba(39,174,96,.4);color:var(--accent-green)}
+.cal-day.partial{background:rgba(241,196,15,.08);border-color:rgba(241,196,15,.3);color:var(--accent-gold)}
+.cal-day .cal-dot{width:5px;height:5px;border-radius:50%;background:currentColor;position:absolute;bottom:5px;opacity:0}
+.cal-day.trained .cal-dot,.cal-day.partial .cal-dot{opacity:1}
+.cal-legend{display:flex;gap:14px;margin-top:14px;flex-wrap:wrap;font-size:.72rem;color:var(--text-dim)}
+.cal-legend span{display:flex;align-items:center;gap:5px}
+.cal-legend i{width:10px;height:10px;border-radius:3px;display:inline-block;font-style:normal}
+
+/* ============ 新增：CSV 导出区域 ============ */
+.export-desc{font-size:.8rem;color:var(--text-secondary);margin-bottom:14px;line-height:1.6}
+.export-desc code{background:var(--bg-dark);padding:2px 6px;border-radius:4px;font-size:.75rem;color:var(--accent-gold)}
+
+@media(max-width:960px){.main-grid{grid-template-columns:1fr}.stats-panel{position:static}.day-tabs{gap:5px}.day-tab{padding:8px 4px}}
+@media(max-width:600px){.app{padding:16px 12px 40px}.header{flex-direction:column;align-items:flex-start}.overall-progress{width:100%;justify-content:center}.day-tabs{grid-template-columns:repeat(4,1fr)}.sets-grid{grid-template-columns:1fr 1fr}.donut-svg{width:170px;height:170px}}
+</style>
 </head>
 <body>
-
 <div class="app">
+<header class="header">
+<div class="brand">
+<div class="brand-icon">🏋️</div>
+<div class="brand-text"><h1>力量举训练追踪</h1><p>Powerlifting Program Tracker · 深蹲 / 卧推 / 硬拉</p></div>
+</div>
+<div class="overall-progress">
+<div class="progress-ring">
+<svg viewBox="0 0 64 64">
+<circle class="track" cx="32" cy="32" r="26"></circle>
+<circle class="fill" id="ringFill" cx="32" cy="32" r="26" stroke-dasharray="163.36" stroke-dashoffset="163.36"></circle>
+</svg>
+<div class="pct-text" id="ringPct">0%</div>
+</div>
+<div class="overall-info">
+<span class="label">本周完成度</span>
+<span class="value"><span id="overallPct">0%</span> · <span id="overallSets">0/0</span> 组</span>
+</div>
+</div>
+</header>
 
-    <!-- ========== 顶部标题 ========== -->
-    <header class="header">
-        <div class="brand">
-            <div class="brand-icon">🏋️</div>
-            <div class="brand-text">
-                <h1>力量举训练追踪</h1>
-                <p>Powerlifting Program Tracker · 深蹲 / 卧推 / 硬拉</p>
-            </div>
-        </div>
-        <div class="overall-progress">
-            <div class="progress-ring">
-                <svg viewBox="0 0 64 64">
-                    <circle class="track" cx="32" cy="32" r="26"></circle>
-                    <circle class="fill" id="ringFill" cx="32" cy="32" r="26"
-                            stroke-dasharray="163.36" stroke-dashoffset="163.36"></circle>
-                </svg>
-                <div class="pct-text" id="ringPct">0%</div>
-            </div>
-            <div class="overall-info">
-                <span class="label">本周完成度</span>
-                <span class="value"><span id="overallPct">0%</span> · <span id="overallSets">0/0</span> 组</span>
-            </div>
-        </div>
-    </header>
+<!-- 顶部 Tabs 切换 -->
+<div class="panel-tabs">
+<button class="panel-tab active" data-view="plan">📋 训练计划</button>
+<button class="panel-tab" data-view="donut">🎯 动作分布</button>
+<button class="panel-tab" data-view="calendar">📅 历史日历</button>
+<button class="panel-tab" data-view="export">📤 导出数据</button>
+</div>
 
-    <!-- ========== 周导航 ========== -->
-    <div class="week-nav">
-        <div class="week-nav-inner">
-            <button class="week-btn" id="prevWeek" title="上一周">‹</button>
-            <div class="week-label" id="weekLabel">
-                第 1 周
-                <small>2024年 · 基础力量期</small>
-            </div>
-            <button class="week-btn" id="nextWeek" title="下一周">›</button>
-        </div>
-        <div class="week-hint">
-            <span>💡</span> 点击组卡片标记完成 / 取消
-        </div>
-    </div>
+<!-- ============ 视图1：训练计划 ============ -->
+<div class="panel-view active" id="view-plan">
+<div class="week-nav">
+<div class="week-nav-inner">
+<button class="week-btn" id="prevWeek">‹</button>
+<div class="week-label" id="weekLabel">第 1 周<small>基础力量期</small></div>
+<button class="week-btn" id="nextWeek">›</button>
+</div>
+<div class="week-hint"><span>💡</span> 点击组卡片标记完成 / 取消</div>
+</div>
 
-    <!-- ========== 日期标签 ========== -->
-    <div class="day-tabs" id="dayTabs"></div>
+<div class="day-tabs" id="dayTabs"></div>
 
-    <!-- ========== 主内容 ========== -->
-    <div class="main-grid">
+<div class="main-grid">
+<div class="plan-panel" id="planPanel">
+<div class="plan-header">
+<div class="plan-header-left">
+<div class="day-badge" id="dayBadge">一</div>
+<div><h2 id="dayTitle">周一 · 深蹲日</h2><p class="subtitle" id="daySubtitle">Squat Focus · 腿部力量</p></div>
+</div>
+<div class="plan-stats">
+<div class="plan-stat"><div class="num" id="dayDoneSets">0</div><div class="lbl">已完成组</div></div>
+<div class="plan-stat"><div class="num" id="dayTotalSets" style="color:var(--text-primary)">0</div><div class="lbl">总组数</div></div>
+</div>
+</div>
+<div class="exercise-list" id="exerciseList"></div>
+</div>
 
-        <!-- 训练计划 -->
-        <div class="plan-panel" id="planPanel">
-            <div class="plan-header">
-                <div class="plan-header-left">
-                    <div class="day-badge" id="dayBadge">一</div>
-                    <div>
-                        <h2 id="dayTitle">周一 · 深蹲日</h2>
-                        <p class="subtitle" id="daySubtitle">Squat Focus · 腿部力量</p>
-                    </div>
-                </div>
-                <div class="plan-stats">
-                    <div class="plan-stat">
-                        <div class="num" id="dayDoneSets">0</div>
-                        <div class="lbl">已完成组</div>
-                    </div>
-                    <div class="plan-stat">
-                        <div class="num" id="dayTotalSets" style="color: var(--text-primary);">0</div>
-                        <div class="lbl">总组数</div>
-                    </div>
-                </div>
-            </div>
-            <div class="exercise-list" id="exerciseList"></div>
-        </div>
+<aside class="stats-panel">
+<div class="stat-card">
+<h3><span class="dot"></span> 本周每日完成度</h3>
+<div class="week-bars" id="weekBars"></div>
+</div>
+<div class="stat-card">
+<h3><span class="dot" style="background:var(--accent-green)"></span> 累计统计</h3>
+<div class="totals-grid">
+<div class="total-item"><div class="val green" id="statCompletedSets">0</div><div class="lbl">完成组数</div></div>
+<div class="total-item"><div class="val blue" id="statTotalSets">0</div><div class="lbl">计划总组</div></div>
+<div class="total-item"><div class="val gold" id="statVolume">0</div><div class="lbl">总吨位(kg)</div></div>
+<div class="total-item"><div class="val" id="statDays">0</div><div class="lbl">训练天数</div></div>
+</div>
+</div>
+<div class="stat-card">
+<h3><span class="dot" style="background:var(--accent-red)"></span> 操作</h3>
+<button class="reset-btn" id="resetDay">🔄 重置当前训练日</button>
+<button class="reset-btn" id="resetWeek" style="margin-top:10px">🗑️ 重置本周所有记录</button>
+</div>
+</aside>
+</div>
+</div>
 
-        <!-- 右侧统计 -->
-        <aside class="stats-panel">
+<!-- ============ 视图2：动作分布环形图 ============ -->
+<div class="panel-view" id="view-donut">
+<div class="stat-card">
+<h3><span class="dot" style="background:var(--accent-purple)"></span> 本周动作类型完成度</h3>
+<div class="donut-wrap">
+<svg class="donut-svg" viewBox="0 0 200 200" id="donutSvg">
+<circle cx="100" cy="100" r="70" stroke="#2a3040" stroke-dasharray="439.82" stroke-dashoffset="0"></circle>
+</svg>
+<div class="donut-legend" id="donutLegend"></div>
+</div>
+</div>
 
-            <!-- 周完成度柱状图 -->
-            <div class="stat-card">
-                <h3><span class="dot"></span> 本周每日完成度</h3>
-                <div class="week-bars" id="weekBars"></div>
-            </div>
+<div class="stat-card" style="margin-top:18px">
+<h3><span class="dot" style="background:var(--accent-gold)"></span> 三大项完成明细</h3>
+<div id="bigThreeDetail"></div>
+</div>
+</div>
 
-            <!-- 累计数据 -->
-            <div class="stat-card">
-                <h3><span class="dot" style="background: var(--accent-green);"></span> 累计统计</h3>
-                <div class="totals-grid">
-                    <div class="total-item">
-                        <div class="val green" id="statCompletedSets">0</div>
-                        <div class="lbl">完成组数</div>
-                    </div>
-                    <div class="total-item">
-                        <div class="val blue" id="statTotalSets">0</div>
-                        <div class="lbl">计划总组</div>
-                    </div>
-                    <div class="total-item">
-                        <div class="val gold" id="statVolume">0</div>
-                        <div class="lbl">总吨位 (kg)</div>
-                    </div>
-                    <div class="total-item">
-                        <div class="val" id="statDays">0</div>
-                        <div class="lbl">训练天数</div>
-                    </div>
-                </div>
-            </div>
+<!-- ============ 视图3：历史日历 ============ -->
+<div class="panel-view" id="view-calendar">
+<div class="stat-card">
+<div class="calendar-header">
+<h3><span class="dot" style="background:var(--accent-green)"></span> 训练历史</h3>
+<div class="cal-nav">
+<button class="cal-nav-btn" id="calPrev">‹</button>
+<button class="cal-nav-btn" id="calNext">›</button>
+</div>
+</div>
+<div style="text-align:center;font-weight:700;font-size:1rem;margin-bottom:14px" id="calTitle">2024年1月</div>
+<div class="calendar-grid" id="calendarGrid"></div>
+<div class="cal-legend">
+<span><i style="background:var(--accent-green-dim);border:1px solid rgba(39,174,96,.4)"></i> 已完成</span>
+<span><i style="background:rgba(241,196,15,.08);border:1px solid rgba(241,196,15,.3)"></i> 部分完成</span>
+<span><i style="background:var(--bg-dark);border:1px solid var(--accent-gold)"></i> 今天</span>
+</div>
+</div>
+<div class="stat-card" style="margin-top:18px">
+<h3><span class="dot" style="background:var(--accent-blue)"></span> 日历统计</h3>
+<div class="totals-grid">
+<div class="total-item"><div class="val green" id="calTrainedDays">0</div><div class="lbl">有训练天数</div></div>
+<div class="total-item"><div class="val gold" id="calTotalVolume">0</div><div class="lbl">本月吨位(kg)</div></div>
+</div>
+</div>
+</div>
 
-            <!-- 操作 -->
-            <div class="stat-card">
-                <h3><span class="dot" style="background: var(--accent-red);"></span> 操作</h3>
-                <button class="reset-btn" id="resetDay">
-                    🔄 重置当前训练日
-                </button>
-                <button class="reset-btn" id="resetWeek" style="margin-top: 10px;">
-                    🗑️ 重置本周所有记录
-                </button>
-            </div>
+<!-- ============ 视图4：导出 ============ -->
+<div class="panel-view" id="view-export">
+<div class="stat-card">
+<h3><span class="dot" style="background:var(--accent-gold)"></span> 导出训练记录</h3>
+<p class="export-desc">
+将当前训练记录导出为 <code>CSV</code> 文件，可直接用 Excel /  Numbers / Google Sheets 打开。
+包含日期、周次、训练日、动作、组号、重量、次数、RPE、完成状态。
+</p>
+<button class="reset-btn green" id="exportCsv">📥 下载 CSV 训练记录</button>
+</div>
 
-        </aside>
-    </div>
+<div class="stat-card" style="margin-top:18px">
+<h3><span class="dot" style="background:var(--accent-red)"></span> 数据管理</h3>
+<p class="export-desc">导出全部原始数据（JSON 格式），可备份或迁移到其他设备。</p>
+<button class="reset-btn blue" id="exportJson">📦 导出 JSON 备份</button>
+<button class="reset-btn" id="importJson" style="margin-top:10px">📂 导入 JSON 备份</button>
+<input type="file" id="jsonFileInput" accept=".json" style="display:none">
+<button class="reset-btn" id="resetAll" style="margin-top:10px">⚠️ 清空所有数据</button>
+</div>
+</div>
 
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-/* =========================================================
-   力量举计划数据结构
-   5 天训练周期（周一~周五），周六周日休息
-   动作类型：squat / bench / deadlift / accessory
-   每个组包含：weight(kg), reps, rpe (自觉用力程度)
-   ========================================================= */
-
+/* ============ 训练计划数据 ============ */
 const PROGRAM = [
-    // 周一 · 深蹲日
-    {
-        name: '周一', title: '深蹲日', subtitle: 'Squat Focus · 腿部力量',
-        icon: '一',
-        exercises: [
-            { name: '杠铃深蹲', type: 'squat', badge: '主项', badgeType: 'main',
-              sets: [
-                { weight: 100, reps: 5, rpe: 7 },
-                { weight: 110, reps: 5, rpe: 7.5 },
-                { weight: 120, reps: 5, rpe: 8 },
-                { weight: 125, reps: 5, rpe: 8.5 },
-                { weight: 130, reps: 5, rpe: 9 },
-              ]},
-            { name: '暂停深蹲', type: 'squat', badge: '辅助', badgeType: 'aux',
-              sets: [
-                { weight: 90, reps: 6, rpe: 7 },
-                { weight: 95, reps: 6, rpe: 7.5 },
-                { weight: 100, reps: 6, rpe: 8 },
-              ]},
-            { name: '腿举', type: 'accessory', badge: '辅助', badgeType: 'acc',
-              sets: [
-                { weight: 180, reps: 10, rpe: 7 },
-                { weight: 200, reps: 10, rpe: 8 },
-                { weight: 200, reps: 10, rpe: 8.5 },
-              ]},
-            { name: '罗马尼亚硬拉', type: 'accessory', badge: '辅助', badgeType: 'acc',
-              sets: [
-                { weight: 80, reps: 8, rpe: 7 },
-                { weight: 85, reps: 8, rpe: 7.5 },
-                { weight: 90, reps: 8, rpe: 8 },
-              ]},
-        ]
-    },
-    // 周二 · 卧推日
-    {
-        name: '周二', title: '卧推日', subtitle: 'Bench Press Focus · 胸部力量',
-        icon: '二',
-        exercises: [
-            { name: '杠铃卧推', type: 'bench', badge: '主项', badgeType: 'main',
-              sets: [
-                { weight: 70, reps: 5, rpe: 7 },
-                { weight: 77.5, reps: 5, rpe: 7.5 },
-                { weight: 82.5, reps: 5, rpe: 8 },
-                { weight: 87.5, reps: 5, rpe: 8.5 },
-                { weight: 90, reps: 5, rpe: 9 },
-              ]},
-            { name: '窄距卧推', type: 'bench', badge: '辅助', badgeType: 'aux',
-              sets: [
-                { weight: 60, reps: 6, rpe: 7 },
-                { weight: 65, reps: 6, rpe: 7.5 },
-                { weight: 67.5, reps: 6, rpe: 8 },
-              ]},
-            { name: '哑铃飞鸟', type: 'accessory', badge: '辅助', badgeType: 'acc',
-              sets: [
-                { weight: 14, reps: 12, rpe: 7 },
-                { weight: 16, reps: 12, rpe: 7.5 },
-                { weight: 18, reps: 12, rpe: 8 },
-              ]},
-            { name: '三头下压', type: 'accessory', badge: '辅助', badgeType: 'acc',
-              sets: [
-                { weight: 25, reps: 12, rpe: 7 },
-                { weight: 30, reps: 12, rpe: 7.5 },
-                { weight: 30, reps: 12, rpe: 8 },
-              ]},
-        ]
-    },
-    // 周三 · 休息日
-    {
-        name: '周三', title: '主动恢复日', subtitle: 'Active Recovery · 轻量有氧',
-        icon: '三',
-        exercises: [
-            { name: '有氧慢跑', type: 'accessory', badge: '恢复', badgeType: 'acc',
-              sets: [
-                { weight: 0, reps: 20, rpe: 4, note: '20分钟' },
-                { weight: 0, reps: 15, rpe: 4, note: '拉伸' },
-              ]},
-        ]
-    },
-    // 周四 · 硬拉日
-    {
-        name: '周四', title: '硬拉日', subtitle: 'Deadlift Focus · 后链力量',
-        icon: '四',
-        exercises: [
-            { name: '传统硬拉', type: 'deadlift', badge: '主项', badgeType: 'main',
-              sets: [
-                { weight: 130, reps: 5, rpe: 7 },
-                { weight: 145, reps: 5, rpe: 7.5 },
-                { weight: 155, reps: 5, rpe: 8 },
-                { weight: 165, reps: 5, rpe: 8.5 },
-                { weight: 170, reps: 5, rpe: 9 },
-              ]},
-            { name: '罗马尼亚硬拉', type: 'deadlift', badge: '辅助', badgeType: 'aux',
-              sets: [
-                { weight: 100, reps: 6, rpe: 7 },
-                { weight: 105, reps: 6, rpe: 7.5 },
-                { weight: 110, reps: 6, rpe: 8 },
-              ]},
-            { name: '引体向上',
+  { name:'周一', title:'深蹲日', subtitle:'Squat Focus · 腿部力量', icon:'一', exercises:[
+    { name:'杠铃深蹲', type:'squat', badge:'主项', badgeType:'main', sets:[
+      {weight:100,reps:5,rpe:7},{weight:110,reps:5,rpe:7.5},{weight:120,reps:5,rpe:8},{weight:125,reps:5,rpe:8.5},{weight:130,reps:5,rpe:9}]},
+    { name:'暂停深蹲', type:'squat', badge:'辅助', badgeType:'aux', sets:[
+      {weight:90,reps:6,rpe:7},{weight:95,reps:6,rpe:7.5},{weight:100,reps:6,rpe:8}]},
+    { name:'腿举', type:'accessory', badge:'辅助', badgeType:'acc', sets:[
+      {weight:180,reps:10,rpe:7},{weight:200,reps:10,rpe:8},{weight:200,reps:10,rpe:8.5}]},
+    { name:'罗马尼亚硬拉', type:'accessory', badge:'辅助', badgeType:'acc', sets:[
+      {weight:80,reps:8,rpe:7},{weight:85,reps:8,rpe:7.5},{weight:90,reps:8,rpe:8}]}
+  ]},
+  { name:'周二', title:'卧推日', subtitle:'Bench Press Focus · 胸部力量', icon:'二', exercises:[
+    { name:'杠铃卧推', type:'bench', badge:'主项', badgeType:'main', sets:[
+      {weight:70,reps:5,rpe:7},{weight:77.5,reps:5,rpe:7.5},{weight:82.5,reps:5,rpe:8},{weight:87.5,reps:5,rpe:8.5},{weight:90,reps:5,rpe:9}]},
+    { name:'窄距卧推', type:'bench', badge:'辅助', badgeType:'aux', sets:[
+      {weight:60,reps:6,rpe:7},{weight:65,reps:6,rpe:7.5},{weight:67.5,reps:6,rpe:8}]},
+    { name:'哑铃飞鸟', type:'accessory', badge:'辅助', badgeType:'acc', sets:[
+      {weight:14,reps:12,rpe:7},{weight:16,reps:12,rpe:7.5},{weight:18,reps:12,rpe:8}]},
+    { name:'三头下压', type:'accessory', badge:'辅助', badgeType:'acc', sets:[
+      {weight:25,reps:12,rpe:7},{weight:30,reps:12,rpe:7.5},{weight:30,reps:12,rpe:8}]}
+  ]},
+  { name:'周三', title:'主动恢复日', subtitle:'Active Recovery · 轻量有氧', icon:'三', exercises:[
+    { name:'有氧慢跑', type:'accessory', badge:'恢复', badgeType:'acc', sets:[
+      {weight:0,reps:20,rpe:4,note:'20分钟'},{weight:0,reps:15,rpe:4,note:'拉伸'}]}
+  ]},
+  { name:'周四', title:'硬拉日', subtitle:'Deadlift Focus · 后链力量', icon:'四', exercises:[
+    { name:'传统硬拉', type:'deadlift', badge:'主项', badgeType:'main', sets:[
+      {weight:130,reps:5,rpe:7},{weight:145,reps:5,rpe:7.5},{weight:155,reps:5,rpe:8},{weight:165,reps:5,rpe:8.5},{weight:170,reps:5,rpe:9}]},
+    { name:'罗马尼亚硬拉', type:'deadlift', badge:'辅助', badgeType:'aux', sets:[
+      {weight:100,reps:6,rpe:7},{weight:105,reps:6,rpe:7.5},{weight:110,reps:6,rpe:8}]},
+    { name:'引体向上', type:'accessory', badge:'辅助', badgeType:'acc', sets:[
+      {weight:0,reps:8,rpe:7,note:'自重'},{weight:0,reps:8,rpe:7.5,note:'自重'},{weight:0,reps:8,rpe:8,note:'自重'}]},
+    { name:'杠铃划船', type:'accessory', badge:'辅助', badgeType:'acc', sets:[
+      {weight:60,reps:8,rpe:7},{weight:65,reps:8,rpe:7.5},{weight:70,reps:8,rpe:8}]}
+  ]},
+  { name:'周五', title:'上肢综合日', subtitle:'Upper Body · 强化弱项', icon:'五', exercises:[
+    { name:'上斜卧推', type:'bench', badge:'辅助', badgeType:'aux', sets:[
+      {weight:60,reps:6,rpe:7},{weight:65,reps:6,rpe:7.5},{weight:70,reps:6,rpe:8}]},
+    { name:'肩上推举', type:'accessory', badge:'辅助', badgeType:'acc', sets:[
+      {weight:40,reps:8,rpe:7},{weight:45,reps:8,rpe:7.5},{weight:50,reps:8,rpe:8}]},
+    { name:'杠铃弯举', type:'accessory', badge:'辅助', badgeType:'acc', sets:[
+      {weight:25,reps:12,rpe:7},{weight:30,reps:12,rpe:7.5},{weight:30,reps:12,rpe:8}]},
+    { name:'面拉', type:'accessory', badge:'辅助', badgeType:'acc', sets:[
+      {weight:20,reps:15,rpe:7},{weight:25,reps:15,rpe:7.5},{weight:25,reps:15,rpe:8}]}
+  ]},
+  { name:'周六', title:'休息日', subtitle:'Rest Day · 完全恢复', icon:'六', exercises:[] },
+  { name:'周日', title:'休息日', subtitle:'Rest Day · 完全恢复', icon:'日', exercises:[] }
+];
+
+/* ============ 存储 ============ */
+const STORAGE_KEY = 'powerlifting-tracker-data';
+function loadData(){ try{ const r = localStorage.getItem(STORAGE_KEY); return r?JSON.parse(r):{}; }catch(e){ return {}; } }
+function saveData(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); }catch(e){} }
+let store = loadData();
+
+/* ============ 状态 ============ */
+let currentWeek = 0;
+let currentDay = 0;
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+
+/* ============ 工具 ============ */
+function key(week,day,ex,set){ return `w${week}-d${day}-e${ex}-s${set}`; }
+function isDone(week,day,ex,set){ return !!store[key(week,day,ex,set)]; }
+function toggle(week,day,ex,set){
+  const k = key(week,day,ex,set);
+  if(store[k]) delete store[k]; else store[k] = true;
+  saveData();
+}
+function getDayDate(week, dayIdx){
+  const base = new Date();
+  const day = base.getDay();
+  const diffToMonday = (day===0? -6 : 1-day);
+  const monday = new Date(base);
+  monday.setDate(base.getDate() + diffToMonday + week*7);
+  const d = new Date(monday);
+  d.setDate(monday.getDate() + dayIdx);
+  return d;
+}
+function getWeekRangeLabel(week){
+  const monday = getDayDate(week, 0);
+  const sunday = getDayDate(week, 6);
+  const fmt = d => `${d.getMonth()+1}/${d.getDate()}`;
+  return `${fmt(monday)} - ${fmt(sunday)}`;
+}
+function getPhaseName(week){
+  const phases = ['基础力量期','积累期','强化期','峰值期','减量期'];
+  return phases[week % phases.length] || '训练期';
+}
+function getWeekOfDate(date){
+  // 计算给定日期属于第几周（相对本周）
+  const base = new Date();
+  const baseDay = base.getDay();
+  const baseMonday = new Date(base);
+  baseMonday.setDate(base.getDate() + (baseDay===0? -6 : 1-baseDay));
+  baseMonday.setHours(0,0,0,0);
+  const d = new Date(date);
+  d.setHours(0,0,0,0);
+  const diff = Math.round((d - baseMonday) / (7*24*3600*1000));
+  return diff;
+}
+function getDayIdxOfDate(date){
+  const dow = date.getDay();
+  return dow===0 ? 6 : dow-1;
+}
+
+/* ============ 渲染：主视图 ============ */
+function render(){
+  renderWeekLabel();
+  renderDayTabs();
+  renderPlan();
+  renderWeekBars();
+  renderTotals();
+  renderOverall();
+  renderDonut();
+  renderCalendar();
+  renderCalendarStats();
+}
+
+function renderWeekLabel(){
+  document.getElementById('weekLabel').innerHTML =
+    `第 ${currentWeek+1} 周<small>${getWeekRangeLabel(currentWeek)} · ${getPhaseName(currentWeek)}</small>`;
+}
+
+function renderDayTabs(){
+  const c = document.getElementById('dayTabs');
+  c.innerHTML = '';
+  PROGRAM.forEach((day, di) => {
+    const date = getDayDate(currentWeek, di);
+    const total = day.exercises.reduce((s,e)=>s+e.sets.length,0);
+    let done = 0;
+    day.exercises.forEach((ex,ei)=>{ ex.sets.forEach((_,si)=>{ if(isDone(currentWeek,di,ei,si)) done++; }); });
+    let sc = 'rest', st = '休息';
+    if(total > 0){
+      if(done === total){ sc='done'; st='已完成'; }
+      else if(done > 0){ sc='partial'; st=`${done}/${total}`; }
+      else { sc='rest'; st=`${total}组`; }
+    }
+    const el = document.createElement('div');
+    el.className = 'day-tab' + (di===currentDay?' active':'');
+    el.innerHTML = `
+      <div class="day-name">${day.name}</div>
+      <div class="day-date">${date.getDate()}</div>
+      <div class="status-dot ${sc}"></div>
+      <div class="day-status ${sc}">${st}</div>`;
+    el.addEventListener('click', ()=>{ currentDay = di; render(); });
+    c.appendChild(el);
+  });
+}
+
+function renderPlan(){
+  const day = PROGRAM[currentDay];
+  document.getElementById('dayBadge').textContent = day.icon;
+  document.getElementById('dayTitle').textContent = `${day.name} · ${day.title}`;
+  document.getElementById('daySubtitle').textContent = day.subtitle;
+  const list = document.getElementById('exerciseList');
+  list.innerHTML = '';
+  if(day.exercises.length === 0){
+    list.innerHTML = `<div class="rest-day"><div class="rest-icon">😴</div><h3>休息日</h3><p>今天不训练，好好恢复。充足的睡眠和营养是力量增长的关键。</p></div>`;
+    document.getElementById('dayDoneSets').textContent = '0';
+    document.getElementById('dayTotalSets').textContent = '0';
+    return;
+  }
+  let dayDone = 0, dayTotal = 0;
+  const iconMap = {squat:'🦵',bench:'💪',deadlift:'🏋️',accessory:'🔧'};
+  day.exercises.forEach((ex, ei) => {
+    const item = document.createElement('div');
+    item.className = 'exercise-item';
+    let exDone = 0;
+    ex.sets.forEach((_,si)=>{ if(isDone(currentWeek,currentDay,ei,si)) exDone++; });
+    const exTotal = ex.sets.length;
+    dayDone += exDone; dayTotal += exTotal;
+    if(exDone === exTotal) item.classList.add('completed');
+    item.innerHTML = `
+      <div class="ex-top">
+        <div class="ex-name">
+          <div class="ex-icon ${ex.type}">${iconMap[ex.type]||'💪'}</div>
+          <span>${ex.name}</span>
+          <span class="ex-badge ${ex.badgeType}">${ex.badge}</span>
+        </div>
+        <div class="ex-completion ${exDone===exTotal?'all-done':''}">${exDone}/${exTotal} 组</div>
+      </div>
+      <div class="sets-grid"></div>`;
+    const grid = item.querySelector('.sets-grid');
+    ex.sets.forEach((set, si) => {
+      const done = isDone(currentWeek,currentDay,ei,si);
+      const card = document.createElement('div');
+      card.className = 'set-card' + (done?' done':'');
+      const w = set.weight > 0 ? `${set.weight}` : '自重';
+      const u = set.weight > 0 ? 'kg' : '';
+      const d = set.note ? set.note : `${set.reps} 次`;
+      card.innerHTML = `
+        <div class="set-weight">${w} <span class="unit">${u}</span></div>
+        <div class="set-detail"><span>${d}</span><span class="set-rpe">RPE ${set.rpe}</span></div>`;
+      card.addEventListener('click', ()=>{ toggle(currentWeek,currentDay,ei,si); render(); });
+      grid.appendChild(card);
+    });
+    list.appendChild(item);
+  });
+  document.getElementById('dayDoneSets').textContent = dayDone;
+  document.getElementById('dayTotalSets').textContent = dayTotal;
+}
+
+function renderWeekBars(){
+  const c = document.getElementById('weekBars');
+  c.innerHTML = '';
+  PROGRAM.forEach((day, di) => {
+    let total = 0, done = 0;
+    day.exercises.forEach((ex,ei)=>{ ex.sets.forEach((_,si)=>{ total++; if(isDone(currentWeek,di,ei,si)) done++; }); });
+    const pct = total === 0 ? 0 : Math.round(done/total*100);
+    const el = document.createElement('div');
+    el.className = 'week-bar-item';
+    el.innerHTML = `
+      <div class="week-bar-track"><div class="week-bar-fill ${total===0?'empty':''}" style="height:${pct}%"></div></div>
+      <div class="week-bar-label">${day.name.replace('周','')}</div>`;
+    c.appendChild(el);
+  });
+}
+
+function renderTotals(){
+  let completed = 0, total = 0, volume = 0, days = 0;
+  PROGRAM.forEach((day, di) => {
+    let dC = 0;
+    day.exercises.forEach((ex,ei)=>{ ex.sets.forEach((set,si)=>{
+      total++;
+      if(isDone(currentWeek,di,ei,si)){ completed++; dC++; volume += (set.weight||0)*(set.reps||0); }
+    }); });
+    if(dC > 0) days++;
+  });
+  document.getElementById('statCompletedSets').textContent = completed;
+  document.getElementById('statTotalSets').textContent = total;
+  document.getElementById('statVolume').textContent = volume >= 1000 ? (volume/1000).toFixed(1)+'k' : volume;
+  document.getElementById('statDays').textContent = days;
+}
+
+function renderOverall(){
+  let total = 0, done = 0;
+  PROGRAM.forEach((day, di) => {
+    day.exercises.forEach((ex,ei)=>{ ex.sets.forEach((_,si)=>{ total++; if(isDone(currentWeek,di,ei,si)) done++; }); });
+  });
+  const pct = total === 0 ? 0 : Math.round(done/total*100);
+  const circ = 2 * Math.PI * 26;
+  document.getElementById('ringFill').setAttribute('stroke-dashoffset', circ - (pct/100)*circ);
+  document.getElementById('ringPct').textContent = pct + '%';
+  document.getElementById('overallPct').textContent = pct + '%';
+  document.getElementById('overallSets').textContent = `${done}/${total}`;
+}
+
+/* ============ 渲染：环形图 ============ */
+function renderDonut(){
+  const types = [
+    { key:'squat',    label:'深蹲类', color:'#e74c3c' },
+    { key:'bench',    label:'卧推类', color:'#3498db' },
+    { key:'deadlift', label:'硬拉类', color:'#9b59b6' },
+    { key:'accessory',label:'辅助类', color:'#f1c40f' }
+  ];
+  const stats = {};
+  types.forEach(t => stats[t.key] = { total:0, done:0 });
+  PROGRAM.forEach((day, di) => {
+    day.exercises.forEach((ex,ei) => {
+      ex.sets.forEach((_,si) => {
+        if(!stats[ex.type]) stats[ex.type] = { total:0, done:0 };
+        stats[ex.type].total++;
+        if(isDone(currentWeek,di,ei,si)) stats[ex.type].done++;
+      });
+    });
+  });
+
+  const svg = document.getElementById('donutSvg');
+  // 保留底层灰色圆
+  const baseCircle = svg.querySelector('circle');
+  svg.innerHTML = '';
+  svg.appendChild(baseCircle);
+
+  const R = 70;
+  const C = 2 * Math.PI * R;
+  let accumulated = 0;
+  const totalAll = Object.values(stats).reduce((s,x)=>s+x.total, 0);
+
+  types.forEach(t => {
+    const s = stats[t.key];
+    if(s.total === 0) return;
+    const pct = s.done / totalAll;
+    const len = pct * C;
+    if(len <= 0) return;
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx', 100);
+    circle.setAttribute('cy', 100);
+    circle.setAttribute('r', R);
+    circle.setAttribute('stroke', t.color);
+    circle.setAttribute('stroke-dasharray', `${len} ${C-len}`);
+    circle.setAttribute('stroke-dashoffset', -accumulated);
+    circle.setAttribute('transform', 'rotate(-90 100 100)');
+    circle.setAttribute('opacity', '0.85');
+    svg.appendChild(circle);
+    accumulated += len;
+  });
+
+  // 图例
+  const legend = document.getElementById('donutLegend');
+  legend.innerHTML = '';
+  types.forEach(t => {
+    const s = stats[t.key];
+    const pct = s.total === 0 ? 0 : Math.round(s.done/s.total*100);
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `
+      <span class="legend-dot" style="background:${t.color}"></span>
+      <span>${t.label}</span>
+      <strong>${s.done}/${s.total}</strong>
+      <span style="color:var(--text-dim);font-size:.7rem">${pct}%</span>`;
+    legend.appendChild(item);
+  });
+
+  // 三大项明细
+  const detail = document.getElementById('bigThreeDetail');
+  detail.innerHTML = '';
+  ['squat','bench','deadlift'].forEach(k => {
+    const t = types.find(x=>x.key===k);
+    const s = stats[k];
+    const pct = s.total===0?0:Math.round(s.done/s.total*100);
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)';
+    row.innerHTML = `
+      <span class="legend-dot" style="background:${t.color};width:12px;height:12px"></span>
+      <span style="font-weight:700;min-width:60px">${t.label}</span>
+      <div style="flex:1;height:8px;background:var(--bg-dark);border-radius:4px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${t.color};border-radius:4px;transition:width .5s"></div>
+      </div>
+      <span style="font-weight:700;color:${t.color};min-width:60px;text-align:right">${s.done}/${s.total}</span>
+    `;
+    detail.appendChild(row);
+  });
+}
+
+/* ============ 渲染：日历 ============ */
+function renderCalendar(){
+  document.getElementById('calTitle').textContent = `${calYear}年${calMonth+1}月`;
+  const grid = document.getElementById('calendarGrid');
+  grid.innerHTML = '';
+  ['一','二','三','四','五','六','日'].forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-dow';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const first = new Date(calYear, calMonth, 1);
+  const startDow = (first.getDay()===0?6:first.getDay()-1); // 周一=0
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+
+  // 上月末尾填充
+  for(let i=0;i<startDow;i++){
+    const el = document.createElement('div');
+    el.className = 'cal-day out';
+    grid.appendChild(el);
+  }
+
+  for(let d=1; d<=daysInMonth; d++){
+    const date = new Date(calYear, calMonth, d);
+    const el = document.createElement('div');
+    el.className = 'cal-day';
+    const dateStr = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    if(dateStr === todayStr) el.classList.add('today');
+
+    // 计算这一天的完成情况
+    const week = getWeekOfDate(date);
+    const dayIdx = getDayIdxOfDate(date);
+    let total = 0, done = 0;
+    if(PROGRAM[dayIdx]){
+      PROGRAM[dayIdx].exercises.forEach((ex,ei)=>{
+        ex.sets.forEach((_,si)=>{
+          total++;
+          if(isDone(week, dayIdx, ei, si)) done++;
+        });
+      });
+    }
+    if(total > 0){
+      if(done === total) el.classList.add('trained');
+      else if(done > 0) el.classList.add('partial');
+    }
+    el.innerHTML = `<span>${d}</span><span class="cal-dot"></span>`;
+    grid.appendChild(el);
+  }
+}
+
+function renderCalendarStats(){
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  let trained = 0, volume = 0;
+  for(let d=1; d<=daysInMonth; d++){
+    const date = new Date(calYear, calMonth, d);
+    const week = getWeekOfDate(date);
+    const dayIdx = getDayIdxOfDate(date);
+    let done = 0, total = 0;
+    if(PROGRAM[dayIdx]){
+      PROGRAM[dayIdx].exercises.forEach((ex,ei)=>{
+        ex.sets.forEach((set,si)=>{
+          total++;
+          if(isDone(week, dayIdx, ei, si)){ done++; volume += (set.weight||0)*(set.reps||0); }
+        });
+      });
+    }
+    if(done > 0) trained++;
+  }
+  document.getElementById('calTrainedDays').textContent = trained;
+  document.getElementById('calTotalVolume').textContent = volume >= 1000 ? (volume/1000).toFixed(1)+'k' : volume;
+}
+
+/* ============ CSV 导出 ============ */
+function exportCSV(){
+  const rows = [['日期','周次','训练日','动作','动作类型','标签','组号','重量(kg)','次数','RPE','完成']];
+  let count = 0;
+  PROGRAM.forEach((day, di) => {
+    day.exercises.forEach((ex, ei) => {
+      ex.sets.forEach((set, si) => {
+        // 遍历所有可能的周（-52 到 +52），找出有记录的组合
+        for(let w=-52; w<=52; w++){
+          if(isDone(w, di, ei, si)){
+            const date = getDayDate(w, di);
+            rows.push([
+              `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`,
+              `第${w+1}周`,
+              day.name,
+              ex.name,
+              ex.type,
+              ex.badge,
+              `第${si+1}组`,
+              set.weight,
+              set.reps,
+              set.rpe,
+              '✓'
+            ]);
+            count++;
+          }
+        }
+      });
+    });
+  });
+  if(count === 0){
+    showToast('暂无训练记录可导出', 'warn');
+    return;
+  }
+  const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff'+csv], { type:'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `力量举训练记录_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`已导出 ${count} 条记录`, 'success');
+}
+
+/* ============ JSON 导出/导入 ============ */
+function exportJSON(){
+  const data = { version:1, exportedAt:new Date().toISOString(), store };
+  const blob = new Blob([JSON.stringify(data,null,2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `力量举备份_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('已导出 JSON 备份', 'success');
+}
+
+function importJSON(file){
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const data = JSON.parse(e.target.result);
+      if(data.store && typeof data.store === 'object'){
+        store = data.store;
+        saveData();
+        render();
+        showToast('已导入备份，共 ' + Object.keys(store).length + ' 条记录', 'success');
+      } else if(typeof data === 'object'){
+        store = data;
+        saveData();
+        render();
+        showToast('已导入 ' + Object.keys(store).length + ' 条记录', 'success');
+      } else {
+        showToast('文件格式错误', 'warn');
+      }
+    }catch(err){
+      showToast('解析失败：' + err.message, 'warn');
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ============ Toast ============ */
+let toastTimer;
+function showToast(msg, type='success'){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.classList.remove('show'); }, 2400);
+}
+
+/* ============ Tabs 切换 ============ */
+document.querySelectorAll('.panel-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel-view').forEach(v => v.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('view-' + tab.dataset.view).classList.add('active');
+    if(tab.dataset.view === 'calendar'){ renderCalendar(); renderCalendarStats(); }
+    if(tab.dataset.view === 'donut'){ renderDonut(); }
+  });
+});
+
+/* ============ 事件绑定 ============ */
+document.getElementById('prevWeek').addEventListener('click', ()=>{ currentWeek = Math.max(-52, currentWeek-1); render(); });
+document.getElementById('nextWeek').addEventListener('click', ()=>{ currentWeek = Math.min(52, currentWeek+1); render(); });
+
+document.getElementById('resetDay').addEventListener('click', ()=>{
+  PROGRAM[currentDay].exercises.forEach((ex,ei)=>{ ex.sets.forEach((_,si)=>{ delete store[key(currentWeek,currentDay,ei,si)]; }); });
+  saveData(); render();
+  showToast('已重置当前训练日', 'success');
+});
+document.getElementById('resetWeek').addEventListener('click', ()=>{
+  if(!confirm('确定要重置本周所有训练记录吗？此操作不可撤销。')) return;
+  PROGRAM.forEach((day, di)=>{ day.exercises.forEach((ex,ei)=>{ ex.sets.forEach((_,si)=>{ delete store[key(currentWeek,di,ei,si)]; }); }); });
+  saveData(); render();
+  showToast('已重置本周记录', 'success');
+});
+
+document.getElementById('calPrev').addEventListener('click', ()=>{
+  calMonth--; if(calMonth < 0){ calMonth = 11; calYear--; }
+  renderCalendar(); renderCalendarStats();
+});
+document.getElementById('calNext').addEventListener('click', ()=>{
+  calMonth++; if(calMonth > 11){ calMonth = 0; calYear++; }
+  renderCalendar(); renderCalendarStats();
+});
+
+document.getElementById('exportCsv').addEventListener('click', exportCSV);
+document.getElementById('exportJson').addEventListener('click', exportJSON);
+document.getElementById('importJson').addEventListener('click', ()=> document.getElementById('jsonFileInput').click());
+document.getElementById('jsonFileInput').addEventListener('change', e => {
+  if(e.target.files[0]) importJSON(e.target.files[0]);
+  e.target.value = '';
+});
+document.getElementById('resetAll').addEventListener('click', ()=>{
+  if(!confirm('确定要清空所有训练数据吗？此操作不可撤销！')) return;
+  if(!confirm('再次确认：所有周次的记录都会被删除。')) return;
+  store = {}; saveData(); render();
+  showToast('已清空所有数据', 'success');
+});
+
+/* ============ 启动 ============ */
+const today = new Date().getDay();
+currentDay = today===0 ? 6 : today-1;
+if(currentDay > 6) currentDay = 0;
+render();
+</script>
+</body>
+</html>
